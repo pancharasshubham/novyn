@@ -1,5 +1,9 @@
 import type { SavedItem } from "@/types/saved-item";
-import type { InstagramSavedExport, InstagramSavedMedia } from "./types";
+import type {
+  InstagramLinkData,
+  InstagramSavedExport,
+  InstagramSavedMedia,
+} from "./types";
 
 /** Convert Instagram's Unix-seconds timestamp to an ISO 8601 string. */
 function toIso(timestamp?: number): string | undefined {
@@ -7,6 +11,15 @@ function toIso(timestamp?: number): string | undefined {
     return undefined;
   }
   return new Date(timestamp * 1000).toISOString();
+}
+
+/**
+ * Pull the link/timestamp/value out of a record, regardless of which export
+ * shape Instagram used. Prefers the "map" shape's "Saved on" entry, falling
+ * back to the first entry of the "list" shape.
+ */
+function extractLinkData(media: InstagramSavedMedia): InstagramLinkData {
+  return media.string_map_data?.["Saved on"] ?? media.string_list_data?.[0] ?? {};
 }
 
 /**
@@ -19,9 +32,11 @@ function buildId(url: string | undefined, index: number): string {
 
 /** Normalize a single Instagram record into a SavedItem, or null if unusable. */
 function toSavedItem(media: InstagramSavedMedia, index: number): SavedItem | null {
-  const savedOn = media.string_map_data?.["Saved on"];
-  const url = savedOn?.href?.trim() || undefined;
+  const link = extractLinkData(media);
+  const url = link.href?.trim() || undefined;
   const creator = media.title?.trim() || undefined;
+  // `value` is usually empty for saved posts, but carries the caption when present.
+  const description = link.value?.trim() || undefined;
 
   // A record with neither a link nor a creator carries no signal — skip it.
   if (!url && !creator) {
@@ -31,9 +46,10 @@ function toSavedItem(media: InstagramSavedMedia, index: number): SavedItem | nul
   return {
     id: buildId(url, index),
     source: "instagram",
+    description,
     creator,
     url,
-    savedAt: toIso(savedOn?.timestamp),
+    savedAt: toIso(link.timestamp),
     tags: [],
     rawData: media,
   };
