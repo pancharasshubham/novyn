@@ -1,7 +1,18 @@
 import type { InstagramSavedExport } from "./types";
 
-/** Largest file we'll attempt to read into memory, in bytes (10 MB). */
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+/**
+ * Upper bound on the file we'll read into memory, in bytes (100 MB).
+ *
+ * The original 10 MB limit was a conservative guess to keep the browser tab
+ * from choking while reading and JSON-parsing the whole export in one go. But a
+ * heavy Instagram user's real `saved_posts.json` can easily exceed that, so the
+ * limit was rejecting legitimate exports. We keep parsing entirely client-side
+ * (no chunking, workers, or backend), so the only thing this ceiling guards
+ * against now is an obviously-wrong file (a video, a disk image) that would
+ * lock up the tab. 100 MB is comfortably above any realistic saved-posts export
+ * while still catching that mistake. File *type* is the real gate below.
+ */
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
 
 export type ValidationResult =
   | { ok: true; data: InstagramSavedExport }
@@ -25,7 +36,8 @@ export function validateFileMeta(file: File): string | null {
   }
 
   if (file.size > MAX_FILE_BYTES) {
-    return "That file is larger than 10 MB. Double-check you selected the right export.";
+    const sizeMb = Math.round(file.size / (1024 * 1024));
+    return `That file is ${sizeMb} MB, which is beyond the 100 MB we read in the browser. A real saved_posts.json should be well under this — double-check you selected the right file.`;
   }
 
   return null;
