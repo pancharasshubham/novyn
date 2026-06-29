@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { DropZone } from "@/features/import/components/DropZone";
-import { ImportSummary } from "@/features/import/components/ImportSummary";
 import { importFile } from "@/features/import/importFile";
 import { savedItemStore } from "@/features/import/store";
+import { SearchView } from "@/features/search/components/SearchView";
 import type { SavedItem } from "@/types/saved-item";
 
 export default function ImportPage() {
@@ -33,7 +33,19 @@ export default function ImportPage() {
     setError(null);
   }
 
-  const hasItems = items.length > 0;
+  // Once content is imported, search becomes the primary action.
+  if (items.length > 0) {
+    return (
+      <main className="mx-auto w-full max-w-2xl px-6 py-12">
+        <header className="mb-6">
+          <p className="text-sm font-medium uppercase tracking-widest text-accent">
+            NOVYN
+          </p>
+        </header>
+        <SearchView items={items} onReset={handleReset} />
+      </main>
+    );
+  }
 
   return (
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-16">
@@ -51,20 +63,14 @@ export default function ImportPage() {
         </p>
       </header>
 
-      {hasItems ? (
-        <ImportSummary items={items} onReset={handleReset} />
-      ) : (
-        <>
-          <DropZone onFile={handleFile} disabled={isImporting} />
-          {isImporting && (
-            <p className="mt-4 text-center text-sm text-muted">Reading file…</p>
-          )}
-          {error && (
-            <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
-              {error}
-            </p>
-          )}
-        </>
+      <DropZone onFile={handleFile} disabled={isImporting} />
+      {isImporting && (
+        <p className="mt-4 text-center text-sm text-muted">Reading file…</p>
+      )}
+      {error && (
+        <p className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-300">
+          {error}
+        </p>
       )}
     </main>
   );
