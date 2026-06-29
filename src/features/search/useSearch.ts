@@ -23,10 +23,18 @@ export function useSearch(items: SavedItem[]) {
     [index, deferredQuery],
   );
 
+  // The active terms, memoized so highlighting stays referentially stable and
+  // memoized cards only re-render when the terms actually change.
+  const terms = useMemo(
+    () => deferredQuery.trim().toLowerCase().split(/\s+/).filter(Boolean),
+    [deferredQuery],
+  );
+
   return {
     query,
     setQuery,
     results,
+    terms,
     /** True while the displayed results lag a still-changing query. */
     isPending: query !== deferredQuery,
   };

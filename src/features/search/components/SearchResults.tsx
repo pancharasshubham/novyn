@@ -1,7 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import { SavedItemCard } from "@/components/SavedItemCard";
 import type { SavedItem } from "@/types/saved-item";
+import { formatMonthYear, searchStats } from "../stats";
 
 /**
  * Cap on how many cards we actually render. The match *count* always reflects
@@ -13,6 +15,7 @@ const RENDER_LIMIT = 100;
 interface SearchResultsProps {
   results: SavedItem[];
   query: string;
+  terms: string[];
 }
 
 function EmptyState({ query }: { query: string }) {
@@ -23,16 +26,17 @@ function EmptyState({ query }: { query: string }) {
         Nothing matched “{query.trim()}”.
       </p>
       <ul className="mt-4 space-y-1 text-sm text-muted">
-        <li>Try another keyword</li>
-        <li>Search a creator name or @username</li>
-        <li>Search a hashtag</li>
+        <li>Try a creator name</li>
+        <li>Try a hashtag</li>
+        <li>Try a broader keyword</li>
       </ul>
     </div>
   );
 }
 
-export function SearchResults({ results, query }: SearchResultsProps) {
+export function SearchResults({ results, query, terms }: SearchResultsProps) {
   const hasQuery = query.trim().length > 0;
+  const stats = useMemo(() => searchStats(results), [results]);
 
   if (hasQuery && results.length === 0) {
     return <EmptyState query={query} />;
@@ -40,16 +44,40 @@ export function SearchResults({ results, query }: SearchResultsProps) {
 
   const visible = results.slice(0, RENDER_LIMIT);
   const total = results.length;
+  const first = formatMonthYear(stats.firstSavedAt);
+  const latest = formatMonthYear(stats.lastSavedAt);
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="px-1 text-sm text-muted">
-        {total.toLocaleString()} {total === 1 ? "result" : "results"} found.
-      </p>
+      <div className="flex flex-col gap-1 px-1">
+        <p className="text-sm text-muted">
+          <span className="font-medium text-white">
+            {total.toLocaleString()}
+          </span>{" "}
+          {total === 1 ? "result" : "results"}
+          {hasQuery && (
+            <>
+              {" for "}
+              <span className="text-white">“{query.trim()}”</span>
+            </>
+          )}
+        </p>
+        {total > 0 && first && latest && (
+          <p className="text-xs text-muted">
+            {first === latest ? (
+              <>Saved {first}</>
+            ) : (
+              <>
+                First saved {first} · Most recent {latest}
+              </>
+            )}
+          </p>
+        )}
+      </div>
 
       <ul className="divide-y divide-edge overflow-hidden rounded-2xl border border-edge bg-surface">
         {visible.map((item) => (
-          <SavedItemCard key={item.id} item={item} />
+          <SavedItemCard key={item.id} item={item} terms={terms} />
         ))}
       </ul>
 
