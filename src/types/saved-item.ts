@@ -12,6 +12,9 @@
 /** Sources NOVYN can ingest. Only "instagram" is implemented in M1. */
 export type SavedItemSource = "instagram";
 
+/** The kind of media a saved item points to, when known. */
+export type SavedItemMediaType = "reel" | "post";
+
 export interface SavedItem {
   /** Stable, deduplicated identifier for this item. */
   id: string;
@@ -19,14 +22,20 @@ export interface SavedItem {
   /** Which platform this item was saved on. */
   source: SavedItemSource;
 
+  /** What kind of media the item is (reel vs post), when determinable. */
+  mediaType?: SavedItemMediaType;
+
   /** Human-facing title, when the source provides one. */
   title?: string;
 
   /** Caption / description text, when available. */
   description?: string;
 
-  /** The account that authored the saved content. */
+  /** The creator's display name (e.g. "Rupesh Taneja"). */
   creator?: string;
+
+  /** The creator's handle, without the leading "@" (e.g. "restartwithrt"). */
+  creatorUsername?: string;
 
   /** Canonical link back to the original content. */
   url?: string;

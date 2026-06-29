@@ -1,4 +1,5 @@
-import type { SavedItem } from "@/types/saved-item";
+import type { SavedItem, SavedItemMediaType } from "@/types/saved-item";
+import { repairMojibake } from "./text";
 import type {
   InstagramSavedExport,
   InstagramSavedItem,
@@ -14,52 +15,63 @@ function toIso(timestamp?: number): string | undefined {
 }
 
 /**
- * Find a label's value, trying each alias in order (case-insensitive). Falls
- * back to `href` because some exports carry links there instead of `value`.
+ * Find a flat label's value among `entries`, trying each alias in order
+ * (case-insensitive). Falls back to `href` for link-style entries.
  */
-function findValue(labels: LabelValue[], aliases: string[]): string | undefined {
+function findValue(entries: LabelValue[], aliases: string[]): string | undefined {
   for (const alias of aliases) {
-    const match = labels.find((lv) => lv.label?.trim().toLowerCase() === alias);
+    const match = entries.find((e) => e.label?.trim().toLowerCase() === alias);
     const value = match?.value?.trim() || match?.href?.trim();
     if (value) return value;
   }
   return undefined;
 }
 
-/** Pull hashtags out of caption text, deduped and lowercased, without the `#`. */
-const HASHTAG = /#([\p{L}\p{N}_]+)/gu;
-function extractHashtags(caption?: string): string[] {
-  if (!caption) return [];
+/** Find a nested group entry by its `title` (case-insensitive). */
+function findGroup(entries: LabelValue[], title: string): LabelValue | undefined {
+  const wanted = title.toLowerCase();
+  return entries.find((e) => e.title?.trim().toLowerCase() === wanted);
+}
+
+/**
+ * Owner is a nested group:
+ *   { title: "Owner", dict: [ { dict: [ {label:"Name"...}, {label:"Username"...} ] } ] }
+ */
+function extractOwner(entries: LabelValue[]): {
+  name?: string;
+  username?: string;
+} {
+  const inner = findGroup(entries, "Owner")?.dict?.[0]?.dict ?? [];
+  const name = findValue(inner, ["name"]);
+  return {
+    // Display names can contain emoji/accents and so suffer the export's mojibake.
+    name: name ? repairMojibake(name) : undefined,
+    // Handles are ASCII, so they're left as-is.
+    username: findValue(inner, ["username", "user name"]),
+  };
+}
+
+/**
+ * Hashtags are a nested group, one tag per sub-record:
+ *   { title: "Hashtags", dict: [ { dict: [ {label:"Name", value:"saas"} ] }, ... ] }
+ * Deduped and lowercased, without the leading "#".
+ */
+function extractHashtags(entries: LabelValue[]): string[] {
+  const groups = findGroup(entries, "Hashtags")?.dict ?? [];
   const tags = new Set<string>();
-  for (const match of caption.matchAll(HASHTAG)) {
-    tags.add(match[1].toLowerCase());
+  for (const group of groups) {
+    const name = findValue(group.dict ?? [], ["name"]);
+    if (name) tags.add(repairMojibake(name).toLowerCase().replace(/^#/, ""));
   }
   return Array.from(tags);
 }
 
-/** The post fields we lift out of an export item before normalizing. */
-interface ExtractedFields {
-  url?: string;
-  caption?: string;
-  owner?: string;
-  username?: string;
-  hashtags: string[];
-  savedAt?: string;
-}
-
-/** Extract the post's fields from its label_values + top-level timestamp. */
-function extractFields(item: InstagramSavedItem): ExtractedFields {
-  const labels = item.label_values ?? [];
-  const caption = findValue(labels, ["caption"]);
-
-  return {
-    url: findValue(labels, ["url"]),
-    caption,
-    owner: findValue(labels, ["owner", "owner username", "media owner"]),
-    username: findValue(labels, ["username", "user name", "account"]),
-    hashtags: extractHashtags(caption),
-    savedAt: toIso(item.timestamp),
-  };
+/** Decide reel vs post from the URL path. */
+function mediaTypeFromUrl(url?: string): SavedItemMediaType | undefined {
+  if (!url) return undefined;
+  if (/\/reels?\//i.test(url)) return "reel";
+  if (/\/(p|tv)\//i.test(url)) return "post";
+  return undefined;
 }
 
 /**
@@ -78,23 +90,30 @@ function buildId(
 
 /** Normalize a single export item into a SavedItem, or null if unusable. */
 function toSavedItem(item: InstagramSavedItem, index: number): SavedItem | null {
-  const fields = extractFields(item);
-  // Prefer the handle (username) as the creator; fall back to the owner name.
-  const creator = fields.username || fields.owner;
+  const entries = item.label_values ?? [];
+
+  const url = findValue(entries, ["url"]);
+  const rawCaption = findValue(entries, ["caption"]);
+  const caption = rawCaption ? repairMojibake(rawCaption) : undefined;
+  const owner = extractOwner(entries);
+  // Prefer the display name; fall back to the handle so the card is never blank.
+  const creator = owner.name || owner.username;
 
   // A record with no link, creator, or caption carries no signal — skip it.
-  if (!fields.url && !creator && !fields.caption) {
+  if (!url && !creator && !caption) {
     return null;
   }
 
   return {
-    id: buildId(item, fields.url, index),
+    id: buildId(item, url, index),
     source: "instagram",
-    description: fields.caption,
+    mediaType: mediaTypeFromUrl(url),
+    description: caption,
     creator,
-    url: fields.url,
-    savedAt: fields.savedAt,
-    tags: fields.hashtags,
+    creatorUsername: owner.username,
+    url,
+    savedAt: toIso(item.timestamp),
+    tags: extractHashtags(entries),
     rawData: item,
   };
 }

@@ -1,35 +1,38 @@
 /**
  * Raw shapes for Instagram's data export.
  *
- * The real `saved_posts.json` is a **top-level array**. Each element describes
- * one saved post and carries the save time plus a flat list of label/value
- * pairs holding the post's details:
+ * The real `saved_posts.json` is a **top-level array**. Each element is one
+ * saved post with a save `timestamp`, an `fbid`, and a `label_values` list.
  *
- *   [
- *     {
- *       "timestamp": 1693526400,
- *       "fbid": "17912345678901234",
- *       "label_values": [
- *         { "label": "Url",      "value": "https://www.instagram.com/p/abc/" },
- *         { "label": "Caption",  "value": "great thread on pricing #saas #startups" },
- *         { "label": "Username", "value": "startup.notes" },
- *         { "label": "Owner",    "value": "Startup Notes" }
- *       ]
- *     }
- *   ]
+ * `label_values` mixes two kinds of entry:
  *
- * Label names vary across export vintages, so the parser matches them
- * case-insensitively against a small set of aliases. These types describe the
+ *   // flat entry — a single field
+ *   { "label": "URL",     "value": "https://www.instagram.com/reel/abc/", "href": "..." }
+ *   { "label": "Caption", "value": "great thread #saas #startups" }
+ *
+ *   // nested group entry — `title` names the group, `dict` holds sub-records
+ *   { "title": "Owner",    "dict": [ { "dict": [
+ *       { "label": "Name",     "value": "Rupesh Taneja" },
+ *       { "label": "Username", "value": "restartwithrt" } ] } ] }
+ *   { "title": "Hashtags", "dict": [ { "dict": [ { "label": "Name", "value": "saas" } ] } ] }
+ *
+ * A single recursive `LabelValue` covers every level. These types describe the
  * export only — they never leak past the parser; everything downstream consumes
  * the normalized SavedItem.
  */
 
-/** One entry in an item's `label_values` array. */
+/** One entry in a `label_values` / `dict` list. Flat or a nested group. */
 export interface LabelValue {
+  /** Present on flat entries (e.g. "URL", "Caption", "Name", "Username"). */
   label?: string;
+  /** The flat entry's value. */
   value?: string;
-  /** Some exports put links in `href` instead of `value`. */
+  /** Some flat entries carry the link here instead of (or as well as) `value`. */
   href?: string;
+  /** Present on group entries — names the group (e.g. "Owner", "Hashtags"). */
+  title?: string;
+  /** A group's nested records. */
+  dict?: LabelValue[];
 }
 
 /** One saved post: a single element of the top-level export array. */
@@ -38,7 +41,7 @@ export interface InstagramSavedItem {
   timestamp?: number;
   /** Instagram's internal id for the saved media. */
   fbid?: string;
-  /** Flat list of the post's fields (url, caption, owner, username, ...). */
+  /** The post's fields — flat values plus nested Owner / Hashtags groups. */
   label_values?: LabelValue[];
 }
 

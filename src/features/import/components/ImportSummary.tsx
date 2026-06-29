@@ -8,7 +8,7 @@ interface ImportSummaryProps {
 }
 
 function formatSavedAt(iso?: string): string {
-  if (!iso) return "Unknown date";
+  if (!iso) return "";
   return new Date(iso).toLocaleDateString(undefined, {
     year: "numeric",
     month: "short",
@@ -18,9 +18,57 @@ function formatSavedAt(iso?: string): string {
 
 const PREVIEW_LIMIT = 8;
 
+/** One saved post, framed around remembering why it was saved. */
+function SavedItemCard({ item }: { item: SavedItem }) {
+  const date = formatSavedAt(item.savedAt);
+
+  return (
+    <li className="flex flex-col gap-2 px-4 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <p className="truncate text-sm font-semibold text-white">
+              {item.creator ?? "Unknown creator"}
+            </p>
+            {item.mediaType && (
+              <span className="shrink-0 rounded-full border border-edge px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+                {item.mediaType}
+              </span>
+            )}
+          </div>
+          {item.creatorUsername && (
+            <p className="truncate text-xs text-muted">
+              @{item.creatorUsername}
+            </p>
+          )}
+        </div>
+        {date && <span className="shrink-0 text-xs text-muted">{date}</span>}
+      </div>
+
+      {item.description && (
+        <p className="line-clamp-2 whitespace-pre-line text-sm text-white/80">
+          {item.description}
+        </p>
+      )}
+
+      {item.url && (
+        <a
+          href={item.url}
+          target="_blank"
+          rel="noreferrer"
+          className="truncate text-xs text-muted/70 transition-colors hover:text-accent"
+        >
+          {item.url}
+        </a>
+      )}
+    </li>
+  );
+}
+
 /**
  * Confirmation view shown after a successful import: a headline count and a
- * short preview of what came in, so the founder can see it actually worked.
+ * preview of the saved posts, so the founder can see — and recognize — what
+ * came in.
  */
 export function ImportSummary({ items, onReset }: ImportSummaryProps) {
   const preview = items.slice(0, PREVIEW_LIMIT);
@@ -48,22 +96,7 @@ export function ImportSummary({ items, onReset }: ImportSummaryProps) {
 
       <ul className="divide-y divide-edge overflow-hidden rounded-2xl border border-edge bg-surface">
         {preview.map((item) => (
-          <li
-            key={item.id}
-            className="flex items-center justify-between gap-4 px-4 py-3"
-          >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">
-                {item.creator ?? "Unknown creator"}
-              </p>
-              {item.url && (
-                <p className="truncate text-xs text-muted">{item.url}</p>
-              )}
-            </div>
-            <span className="shrink-0 text-xs text-muted">
-              {formatSavedAt(item.savedAt)}
-            </span>
-          </li>
+          <SavedItemCard key={item.id} item={item} />
         ))}
       </ul>
 
