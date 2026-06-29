@@ -187,3 +187,9 @@ NOVYN only reflects recurring interests and suggests actions supported by saved 
 Suggestions must be evidence-based.
 
 Suggestions are invitations, not instructions.
+
+Insights must always be supported by visible evidence.
+
+Observation → Evidence → Suggestion
+
+Never generate suggestions without evidence.
