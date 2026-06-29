@@ -34,7 +34,7 @@ export interface SavedItem {
   /** When the user saved it, as an ISO 8601 string. */
   savedAt?: string;
 
-  /** Free-form tags. Empty for M1 — populated by later analysis milestones. */
+  /** Free-form tags. Seeded from the post's hashtags; later milestones add more. */
   tags: string[];
 
   /** The untouched source record, kept for debugging and future re-parsing. */

@@ -1,41 +1,46 @@
 /**
  * Raw shapes for Instagram's data export.
  *
- * Instagram exports saved content in `saved_posts.json` under the top-level
- * key `saved_saved_media`. Each record carries the post link and save time, but
- * in one of two shapes depending on the export vintage:
+ * The real `saved_posts.json` is a **top-level array**. Each element describes
+ * one saved post and carries the save time plus a flat list of label/value
+ * pairs holding the post's details:
  *
- *   // older / "map" shape
- *   { "title": "creator", "string_map_data": {
- *       "Saved on": { "href": "https://www.instagram.com/p/abc/", "timestamp": 1693526400 } } }
+ *   [
+ *     {
+ *       "timestamp": 1693526400,
+ *       "fbid": "17912345678901234",
+ *       "label_values": [
+ *         { "label": "Url",      "value": "https://www.instagram.com/p/abc/" },
+ *         { "label": "Caption",  "value": "great thread on pricing #saas #startups" },
+ *         { "label": "Username", "value": "startup.notes" },
+ *         { "label": "Owner",    "value": "Startup Notes" }
+ *       ]
+ *     }
+ *   ]
  *
- *   // newer / "list" shape
- *   { "title": "creator", "string_list_data": [
- *       { "href": "https://www.instagram.com/p/abc/", "value": "", "timestamp": 1693526400 } ] }
- *
- * The parser handles both. These types describe the export only — they never
- * leak past the parser; everything downstream consumes the normalized SavedItem.
+ * Label names vary across export vintages, so the parser matches them
+ * case-insensitively against a small set of aliases. These types describe the
+ * export only — they never leak past the parser; everything downstream consumes
+ * the normalized SavedItem.
  */
 
-/** A single href/value/timestamp triple, used by both export shapes. */
-export interface InstagramLinkData {
-  href?: string;
+/** One entry in an item's `label_values` array. */
+export interface LabelValue {
+  label?: string;
   value?: string;
-  /** Unix timestamp in seconds. */
+  /** Some exports put links in `href` instead of `value`. */
+  href?: string;
+}
+
+/** One saved post: a single element of the top-level export array. */
+export interface InstagramSavedItem {
+  /** When the post was saved, as a Unix timestamp in seconds. */
   timestamp?: number;
+  /** Instagram's internal id for the saved media. */
+  fbid?: string;
+  /** Flat list of the post's fields (url, caption, owner, username, ...). */
+  label_values?: LabelValue[];
 }
 
-export interface InstagramSavedMedia {
-  /** Instagram stores the creator's username here. */
-  title?: string;
-  /** "Map" shape: the save link lives under the "Saved on" key. */
-  string_map_data?: {
-    "Saved on"?: InstagramLinkData;
-  };
-  /** "List" shape: the save link is the first (and only) array entry. */
-  string_list_data?: InstagramLinkData[];
-}
-
-export interface InstagramSavedExport {
-  saved_saved_media?: InstagramSavedMedia[];
-}
+/** The export itself: a top-level array of saved posts. */
+export type InstagramSavedExport = InstagramSavedItem[];

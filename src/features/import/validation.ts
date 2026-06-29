@@ -56,22 +56,32 @@ export function parseAndValidate(text: string): ValidationResult {
     return { ok: false, error: "This file isn't valid JSON." };
   }
 
-  if (typeof json !== "object" || json === null) {
-    return { ok: false, error: "Unexpected JSON structure." };
-  }
-
-  const media = (json as InstagramSavedExport).saved_saved_media;
-
-  if (!Array.isArray(media)) {
+  if (!Array.isArray(json)) {
     return {
       ok: false,
       error:
-        "This doesn't look like an Instagram saved-posts export (missing \"saved_saved_media\").",
+        "This doesn't look like an Instagram saved-posts export — expected a list of saved posts.",
     };
   }
 
-  if (media.length === 0) {
+  if (json.length === 0) {
     return { ok: false, error: "No saved posts were found in this export." };
+  }
+
+  // Light shape check: real items carry a timestamp, an fbid, or label_values.
+  const looksLikeSavedPosts = json.some(
+    (item) =>
+      item !== null &&
+      typeof item === "object" &&
+      ("label_values" in item || "timestamp" in item || "fbid" in item),
+  );
+
+  if (!looksLikeSavedPosts) {
+    return {
+      ok: false,
+      error:
+        "This file is a JSON list, but the items don't look like Instagram saved posts.",
+    };
   }
 
   return { ok: true, data: json as InstagramSavedExport };
