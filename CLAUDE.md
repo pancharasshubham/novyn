@@ -178,3 +178,12 @@ For every implementation:
 4. Mention tradeoffs.
 5. Suggest the next milestone.
 6. Generate a clean commit message.
+
+
+NOVYN never tells users who they should become.
+
+NOVYN only reflects recurring interests and suggests actions supported by saved behavior.
+
+Suggestions must be evidence-based.
+
+Suggestions are invitations, not instructions.
