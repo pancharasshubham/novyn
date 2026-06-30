@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { HomeShell } from "@/components/HomeShell";
 import { DropZone } from "@/features/import/components/DropZone";
 import { importFile } from "@/features/import/importFile";
 import { savedItemStore } from "@/features/import/store";
-import { SearchView } from "@/features/search/components/SearchView";
 import type { SavedItem } from "@/types/saved-item";
 
 export default function ImportPage() {
@@ -33,16 +33,11 @@ export default function ImportPage() {
     setError(null);
   }
 
-  // Once content is imported, search becomes the primary action.
+  // Once content is imported, the reflection home becomes the experience.
   if (items.length > 0) {
     return (
-      <main className="mx-auto w-full max-w-2xl px-6 py-12">
-        <header className="mb-6">
-          <p className="text-sm font-medium uppercase tracking-widest text-accent">
-            NOVYN
-          </p>
-        </header>
-        <SearchView items={items} onReset={handleReset} />
+      <main className="min-h-screen w-full">
+        <HomeShell items={items} onReset={handleReset} />
       </main>
     );
   }

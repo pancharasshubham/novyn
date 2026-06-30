@@ -46,10 +46,6 @@ export interface CreatorInfluence {
   lastSavedAt?: string;
 }
 
-export interface AttentionSignal {
-  text: string;
-}
-
 function displayLabel(term: string): string {
   if (ACRONYMS.has(term)) return term.toUpperCase();
   return term.charAt(0).toUpperCase() + term.slice(1);
@@ -161,6 +157,26 @@ export function analyzeInterests(
   return patterns.slice(0, limit);
 }
 
+/**
+ * The saves whose caption or hashtags contain `term`, newest first. Uses the
+ * same token test as the interest counts, so a shelf's items line up with the
+ * evidence shown beside it.
+ */
+export function savesForTerm(
+  items: SavedItem[],
+  term: string,
+  limit = 12,
+): SavedItem[] {
+  const needle = term.toLowerCase();
+  const matches = items.filter((item) => tokensFor(item).has(needle));
+  matches.sort((a, b) => {
+    const am = a.savedAt ? Date.parse(a.savedAt) : NaN;
+    const bm = b.savedAt ? Date.parse(b.savedAt) : NaN;
+    return (Number.isNaN(bm) ? -Infinity : bm) - (Number.isNaN(am) ? -Infinity : am);
+  });
+  return matches.slice(0, limit);
+}
+
 interface CreatorAcc {
   name?: string;
   username?: string;
@@ -226,37 +242,4 @@ export function analyzeCreators(
         (a.name ?? a.username ?? "").localeCompare(b.name ?? b.username ?? ""),
     )
     .slice(0, limit);
-}
-
-/**
- * Plain-language observations built from already-computed patterns. These are
- * observations, never conclusions — they only restate the evidence in words.
- */
-export function buildSignals(
-  interests: InterestPattern[],
-  creators: CreatorInfluence[],
-): AttentionSignal[] {
-  const signals: AttentionSignal[] = [];
-
-  for (const interest of interests) {
-    signals.push({
-      text: `${interest.label} appears in ${interest.saveCount.toLocaleString()} saves.`,
-    });
-    if (interest.monthCount > 1) {
-      signals.push({
-        text: `${interest.label} shows up across ${interest.monthCount} different months.`,
-      });
-    }
-  }
-
-  for (const creator of creators) {
-    const name = creator.name ?? `@${creator.username}`;
-    const span =
-      creator.monthCount > 1 ? ` across ${creator.monthCount} months` : "";
-    signals.push({
-      text: `${name} appears repeatedly — ${creator.count} saves${span}.`,
-    });
-  }
-
-  return signals;
 }

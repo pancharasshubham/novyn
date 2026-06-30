@@ -1,56 +1,70 @@
 # System Architecture
 
-Instagram JSON
+Instagram JSON export (top-level array)
         ↓
-Parser
+Validation        (file type + light shape check)
         ↓
-Normalizer
+Parser            (caption, creator, username, hashtags, timestamp, url)
         ↓
-SavedItem
+Normalizer        (→ SavedItem · mojibake repair · de-dupe)
         ↓
-Database
+In-memory store   (module singleton — the single Supabase-replacement seam)
         ↓
-Search Engine
+Client-side engines
+   • Search        keyword · substring · multi-word · precomputed index
+   • Attention     recurring interests · consistency · creator influence
         ↓
-Insights Engine
-        ↓
-UI
+Reflection home (UI)
 
-Layers
-Import Layer
+---
 
-Receives JSON.
+## SavedItem (source-agnostic)
 
-Parser
-
-Extract:
-
-captions
-creator
-timestamps
-urls
-
-Normalizer
-Convert to:
+```ts
 type SavedItem = {
   id: string
-  source: string
+  source: "instagram"
+  mediaType?: "reel" | "post"
   title?: string
-  creator?: string
+  description?: string      // caption
+  creator?: string          // display name
+  creatorUsername?: string  // handle, no @
   url?: string
-  savedAt?: string
-  tags: string[]
+  savedAt?: string          // ISO 8601
+  tags: string[]            // hashtags
+  rawData?: unknown
 }
+```
 
-Search Engine
-Keyword search.
+Every engine reads only `SavedItem`, so future parsers (YouTube, bookmarks,
+LinkedIn) light up the whole product with no UI changes.
 
-Insight Engine
-topic detection
-interest analysis
-trend analysis
+---
 
-UI
-search
-timeline
-insights
+## Layers
+
+**Import** — receives the JSON file, validates type and shape.
+
+**Parser** — extracts fields from the nested `label_values` groups.
+
+**Normalizer** — converts to `SavedItem`, repairs double-encoded text, de-dupes.
+
+**Store** — in-memory only. No database is wired; this module is the one place a
+real datastore would later slot in.
+
+**Search engine** — keyword search over a precomputed text index. No external
+library, no embeddings.
+
+**Attention engine** — counts recurring interests, measures consistency over
+time, and ranks creator influence. Pure functions, fully explainable.
+
+**Reflection UI** — observations first, content as evidence on demand.
+
+---
+
+## Principles
+
+- No database, no auth, no AI / LLM, no embeddings, no backend services.
+- Everything runs client-side and is explainable.
+- Only Instagram is implemented; the architecture allows future parsers.
+- Observation → Evidence. Every insight is backed by saves the user can open.
