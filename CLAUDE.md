@@ -45,10 +45,10 @@ The product is NOT:
 2. Parsing saved content.
 3. Unified SavedItem model.
 4. Search saved content.
-5. Theme analysis.
-6. Timeline analysis.
+5. Attention patterns.
+6. Creator influence.
 7. Forgotten content resurfacing.
-8. Interest insights.
+8. Reflection and action suggestions.
 
 ---
 
@@ -193,3 +193,57 @@ Insights must always be supported by visible evidence.
 Observation → Evidence → Suggestion
 
 Never generate suggestions without evidence.
+
+NOVYN does not analyze topics.
+
+NOVYN analyzes recurring attention.
+
+Topics change.
+
+Human behavior does not.
+
+The system observes:
+
+- repetition
+- consistency
+- attention
+
+The system suggests reflection.
+
+The user decides what matters.
+
+# Core Philosophy
+
+People save things for many reasons:
+
+- entertainment
+- learning
+- aspiration
+- curiosity
+- inspiration
+
+NOVYN does not assume every save is meaningful.
+
+NOVYN looks for:
+
+- repetition
+- consistency
+- recurring attention
+
+The goal is not to tell users who they are.
+
+The goal is to help users notice what repeatedly attracts their attention.
+
+Not every pattern requires a suggestion.
+
+Some observations may simply be interesting.
+
+The system must earn the right to make suggestions.
+
+Suggestions require:
+
+1. Repetition.
+2. Evidence.
+3. Consistency.
+
+Single saves should never produce insights.
