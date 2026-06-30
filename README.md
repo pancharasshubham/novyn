@@ -1,5 +1,7 @@
 # NOVYN
 
+NOVYN represents noticing what repeatedly returns to your attention. It is a reflection tool that helps surface recurring interests, influences, and forgotten content.
+
 > What keeps attracting your attention?
 
 NOVYN is a personal saved-content reflection tool.
