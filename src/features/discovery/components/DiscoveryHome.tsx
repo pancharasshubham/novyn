@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { SavedItemCard } from "@/components/SavedItemCard";
+import { AttentionPatterns } from "@/features/attention/components/AttentionPatterns";
 import type { SavedItem } from "@/types/saved-item";
 import { libraryStats, recentSaves, topCreators } from "../discovery";
 import { QuickStats } from "./QuickStats";
@@ -56,6 +57,8 @@ export function DiscoveryHome({ items, onPick }: DiscoveryHomeProps) {
           ))}
         </ul>
       </Section>
+
+      <AttentionPatterns items={items} onPick={onPick} />
 
       <Section title="Top creators">
         <TopCreators creators={creators} onPick={onPick} />
